@@ -1,9 +1,12 @@
 from flask import Flask, render_template, request, redirect, url_for
 from azure.servicebus import ServiceBusClient, ServiceBusMessage
 import os
+from dotenv import load_dotenv
 from config.config import Config
-from openaiproto import analyze_image
+from awaabs.openaiproto import analyze_image
 from werkzeug.utils import secure_filename
+
+load_dotenv()
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -28,18 +31,28 @@ def upload_file():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             
-            result = analyze_image(filepath)
+            # Get configuration from environment variables
+            endpoint = os.getenv("ENDPOINT_URL")
+            api_key = os.getenv("AZURE_OPENAI_API_KEY")
+            deployment = os.getenv("DEPLOYMENT_NAME")
+            
+            # Analyze the image
+            result = analyze_image(filepath, endpoint, api_key, deployment)
+            
+            # Clean up the uploaded file
+            os.remove(filepath)
             
             # Send to Service Bus queue based on result
-            connection_string = app.config['SERVICE_BUS_CONNECTION_STRING']
-            with ServiceBusClient.from_connection_string(connection_string) as client:
-                queue_name = "urgent-cases" if "urgent request" in result.lower() else \
-                           "standard-cases" if "standard request" in result.lower() else \
-                           "no-mould-cases"
-                
-                with client.get_queue_sender(queue_name) as sender:
-                    message = ServiceBusMessage(result)
-                    sender.send_messages(message)
+            if result and not result.startswith("Error"):
+                connection_string = app.config['SERVICE_BUS_CONNECTION_STRING']
+                with ServiceBusClient.from_connection_string(connection_string) as client:
+                    queue_name = "urgent-cases" if "urgent request" in result.lower() else \
+                               "standard-cases" if "standard request" in result.lower() else \
+                               "no-mould-cases"
+                    
+                    with client.get_queue_sender(queue_name) as sender:
+                        message = ServiceBusMessage(result)
+                        sender.send_messages(message)
             
             return render_template('result.html', result=result)
     
