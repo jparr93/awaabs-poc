@@ -3,7 +3,7 @@ from azure.servicebus import ServiceBusClient, ServiceBusMessage
 import os
 from dotenv import load_dotenv
 from config.config import Config
-from awaabs.openaiproto import analyze_image
+from openaiproto import analyze_image
 from werkzeug.utils import secure_filename
 
 load_dotenv()
