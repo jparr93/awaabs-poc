@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Analysis Result</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <h1>Analysis Result</h1>
+        <div class="result">
+            {{ result }}
+        </div>
+        <a href="/" class="button">Analyze Another Image</a>
+    </div>
+</body>
+</html>
